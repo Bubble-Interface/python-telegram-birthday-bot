@@ -1,0 +1,28 @@
+version: '3'
+services:
+  birthday_bot_postgres:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: counter
+    ports:
+      - '5432:5432'
+    volumes:
+      - birthday_bot_db_data:/var/lib/postgresql/data
+
+  # birthday_bot:
+  #   build:
+  #     context: .
+  #   restart: always
+  #   depends_on:
+  #     - birthday_bot_postgres
+  #   environment:
+  #     POSTGRES_USER: user
+  #     POSTGRES_PASSWORD: password
+  #     POSTGRES_DB: counter
+  #     TOKEN: $TOKEN
+
+volumes:
+  birthday_bot_db_data:
