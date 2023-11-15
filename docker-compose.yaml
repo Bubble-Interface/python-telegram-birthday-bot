@@ -1,8 +1,7 @@
 version: '3'
 services:
-  birthday_bot_postgres:
+  postgres:
     image: postgres
-    restart: always
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
@@ -12,12 +11,12 @@ services:
     volumes:
       - birthday_bot_db_data:/var/lib/postgresql/data
 
-  # birthday_bot:
+  # bot:
   #   build:
   #     context: .
   #   restart: always
   #   depends_on:
-  #     - birthday_bot_postgres
+  #     - postgres
   #   environment:
   #     POSTGRES_USER: user
   #     POSTGRES_PASSWORD: password

@@ -22,7 +22,7 @@ class User(Base):
     # telegram user_id 
     id: Mapped[int] = mapped_column(primary_key=True)
     username: Mapped[str] = mapped_column(String(30))
-    birthdays: Mapped[list["Birthday"]] = relationship(
+    events: Mapped[list["Event"]] = relationship(
         back_populates="user", 
         cascade="all, delete-orphan"
     )
@@ -32,15 +32,15 @@ class User(Base):
 
 
 # TODO: add the ability to mention a telegram user
-class Birthday(Base):
-    __tablename__  = "birthdays"
+class Event(Base):
+    __tablename__  = "events"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    person_name: Mapped[str] = mapped_column(String(30))
+    event: Mapped[str] = mapped_column(String(30))
     # TODO: replace with the date type
     date: Mapped[str] = mapped_column(String(30))
-    originator_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="birthdays")
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    user: Mapped["User"] = relationship(back_populates="events")
 
     def __repr__(self) -> str:
         return super().__repr__()

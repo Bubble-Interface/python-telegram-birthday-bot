@@ -19,9 +19,9 @@ from telegram_bot_calendar import LSTEP
 
 from db import Session
 from service.user_service import register_user
-from service.birthday_service import CustomCalendar
+from service.event_service import CustomCalendar, save_event
 
-NAME, DATE = range(2)
+DATE, EVENT = range(2)
 
 # TODO: use proper logging (check telegram package docs)
 logging.basicConfig(
@@ -48,43 +48,48 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def remember_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
-        "Please enter a name of the person"
+        "Please enter a date for the memorable event"
     )
     
-    return NAME
-
-async def enter_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    name = update.message.text
-    logger.info(f"New Birthday record for: {name}")
-    context.user_data["name"] = name
     calendar, step = CustomCalendar().build()
-    await update.message.reply_text(
-        "Great!\n"
-        f"And when was {name} born?\n"
-    )
     await update.message.reply_text(
         f"Select {LSTEP[step]}",
         reply_markup=calendar
     )
+    
     return DATE
 
-async def select_date(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def enter_event(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    event = update.message.text
+    date = context.user_data["date"]
+    with Session.begin() as session:
+        save_event(user_id=update.effective_user.id, date=date, event=event, session=session)
+    # TODO: rework the reply
+    # mention how many days left before the event
+    text = f"You will be reminded of this event a week before selected date and then a day before selected date"
+    await update.message.reply_text(text)
+    return ConversationHandler.END
+
+
+async def calendar_button(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     result, key, step = CustomCalendar().process(query.data)
 
     if not result and key:
         await query.edit_message_text(text=f"Select {LSTEP[step]}", reply_markup=key)
     elif result:
-        text = f"I remembered {context.user_data['name']} birthday: {result}"
-        logger.info(f"New Birthday record for: {context.user_data['name']}, {result}")
+        text = (f"{result}\nGreat! And what do you want to be reminded of for this date?\n")
+        context.user_data["date"] = result
+        
         await query.edit_message_text(text)
-        return ConversationHandler.END
+        return EVENT
+
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
-    logger.info("User %s canceled the conversation.", user.first_name)
+    logger.info(f"User {user} canceled the conversation.")
     await update.message.reply_text(
         "Bye! I hope we can talk again later.", reply_markup=ReplyKeyboardRemove()
     )
@@ -92,7 +97,6 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return ConversationHandler.END
 
 # TODO: check the proper architecture (telegram package docs)
-# TODO: figure out a way to work in private chats and groups
 if __name__ == "__main__":
 
     bot_token = os.environ.get("TOKEN")
@@ -102,8 +106,8 @@ if __name__ == "__main__":
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("birthday", remember_birthday)],
         states={
-            NAME: [MessageHandler(filters.TEXT, enter_name)],
-            DATE: [CallbackQueryHandler(select_date)],
+            DATE: [CallbackQueryHandler(calendar_button)],
+            EVENT: [MessageHandler(filters.TEXT, enter_event)],
         },
         fallbacks=[CommandHandler("cancel", cancel)],
     )

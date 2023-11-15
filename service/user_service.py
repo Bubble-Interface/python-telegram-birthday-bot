@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from db.models import User
 
 # TODO: create a separate class
+# TODO: async?
 def register_user(user: TelegramUser, session: Session):
     stmt = select(User).where(User.id == user.id)
     registered_user = session.scalar(stmt)
