@@ -20,7 +20,7 @@ from telegram_bot_calendar import LSTEP
 
 from db import Session
 from service.user_service import register_user
-from service.event_service import CustomCalendar, save_event
+from service.event_service import CustomCalendar, save_event, list_events
 
 DATE, EVENT = range(2)
 
@@ -105,6 +105,17 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     return ConversationHandler.END
 
+async def all_events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    user_id = update.effective_user.id
+    with Session.begin() as session:
+        events = list_events(user_id=user_id, session=session)
+        events_text = "\n\n".join([f"Event date: {event.date}.\nEvent description: {event.event}" for event in events])
+        reply_text = (
+            f"Here's you're list of events:\n\n"
+            f"{events_text}"
+        )
+        await update.message.reply_text(reply_text)
+
 # TODO: check the proper architecture (telegram package docs)
 if __name__ == "__main__":
 
@@ -122,6 +133,9 @@ if __name__ == "__main__":
     )
 
     start_handler = CommandHandler(command='start', callback=start)
+    all_events_handler = CommandHandler(command='events', callback=all_events)
+    
+    application.add_handler(all_events_handler)
     application.add_handler(start_handler)
     application.add_handler(conv_handler)
 

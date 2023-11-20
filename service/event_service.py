@@ -33,3 +33,8 @@ def save_event(user_id: int, date: str, event: str, session: Session):
     session.commit()
 
     return True
+
+def list_events(user_id: int, session: Session):
+    stmt = select(Event).where(user_id==user_id)
+    events = session.scalars(stmt)
+    return events
