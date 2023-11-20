@@ -1,5 +1,6 @@
 import logging
 import os
+import datetime
 
 from telegram import (
     Update,
@@ -46,7 +47,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
-async def remember_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def remember_event(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text(
         "Please enter a date for the memorable event"
     )
@@ -61,12 +62,20 @@ async def remember_birthday(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 
 async def enter_event(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     event = update.message.text
-    date = context.user_data["date"]
+    # datetime.date is saved here
+    event_date = context.user_data["date"]
     with Session.begin() as session:
-        save_event(user_id=update.effective_user.id, date=date, event=event, session=session)
+        save_event(user_id=update.effective_user.id, date=event_date, event=event, session=session)
     # TODO: rework the reply
     # mention how many days left before the event
-    text = f"You will be reminded of this event a week before selected date and then a day before selected date"
+    delta1 = datetime.date(datetime.date.today().year, event_date.month, event_date.day)
+    delta2 = datetime.date(datetime.date.today().year + 1, event_date.month, event_date.day)
+    days_before_event = ((delta1 if delta1 > datetime.date.today() else delta2) - datetime.date.today()).days
+    text = (
+        f"{days_before_event} days before the event.\n"
+        "You will be reminded of this event a week before selected date "
+        "and then a day before selected date"
+    )
     await update.message.reply_text(text)
     return ConversationHandler.END
 
@@ -104,7 +113,7 @@ if __name__ == "__main__":
 
     # Add conversation handler with the states NAME, DATE
     conv_handler = ConversationHandler(
-        entry_points=[CommandHandler("birthday", remember_birthday)],
+        entry_points=[CommandHandler("event", remember_event)],
         states={
             DATE: [CallbackQueryHandler(calendar_button)],
             EVENT: [MessageHandler(filters.TEXT, enter_event)],
