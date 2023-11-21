@@ -1,4 +1,4 @@
-
+from datetime import date
 
 from sqlalchemy import (
     String,
@@ -38,7 +38,7 @@ class Event(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     event: Mapped[str] = mapped_column(String(30))
     # TODO: replace with the date type
-    date: Mapped[str] = mapped_column(String(30))
+    date: Mapped[date]
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
     user: Mapped["User"] = relationship(back_populates="events")
 

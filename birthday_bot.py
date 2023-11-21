@@ -93,7 +93,6 @@ async def calendar_button(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return EVENT
 
 
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     """Cancels and ends the conversation."""
     user = update.message.from_user
@@ -108,6 +107,7 @@ async def all_events(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_id = update.effective_user.id
     with Session.begin() as session:
         events = list_events(user_id=user_id, session=session)
+        # TODO: custom reply for no events
         events_text = "\n\n".join([f"Event date: {event.date}.\nEvent description: {event.event}" for event in events])
         reply_text = (
             f"Here's you're list of events:\n\n"
