@@ -66,11 +66,10 @@ async def enter_event(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     event_date = context.user_data["date"]
     with Session.begin() as session:
         save_event(user_id=update.effective_user.id, date=event_date, event=event, session=session)
-    # TODO: rework the reply
-    # mention how many days left before the event
-    delta1 = datetime.date(datetime.date.today().year, event_date.month, event_date.day)
-    delta2 = datetime.date(datetime.date.today().year + 1, event_date.month, event_date.day)
-    days_before_event = ((delta1 if delta1 > datetime.date.today() else delta2) - datetime.date.today()).days
+
+    this_year = datetime.date(datetime.date.today().year, event_date.month, event_date.day)
+    next_year = this_year.replace(year=this_year.year + 1)
+    days_before_event = ((this_year if this_year > datetime.date.today() else next_year) - datetime.date.today()).days
     text = (
         f"{days_before_event} days before the event.\n"
         "You will be reminded of this event a week before selected date "
