@@ -3,16 +3,11 @@ from datetime import date
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-
-from telegram_bot_calendar import DetailedTelegramCalendar, LSTEP
+from telegram import User as TelegramUser
 
 from db.models import Event, User
 
 logger = logging.getLogger(__name__)
-
-class CustomCalendar(DetailedTelegramCalendar):
-    size_year=4
-    size_year_column=2
 
 # TODO: async?
 def save_event(user_id: int, date: date, event: str, session: Session):
@@ -35,3 +30,20 @@ def list_events(user_id: int, session: Session):
     stmt = select(Event).where(user_id==user_id)
     events = session.scalars(stmt)
     return events.all()
+
+
+# TODO: create a separate class
+# TODO: async?
+def register_user(user: TelegramUser, session: Session):
+    stmt = select(User).where(User.id == user.id)
+    registered_user = session.scalar(stmt)
+    if registered_user:
+        return False
+    else:
+        new_user = User(
+        id=user.id,
+        username=user.username,
+        )
+        session.add(new_user)
+        session.commit()
+        return True
