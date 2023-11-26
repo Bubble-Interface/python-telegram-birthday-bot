@@ -1,5 +1,4 @@
 import logging
-import os
 import datetime
 
 from telegram import (
@@ -19,7 +18,7 @@ from telegram.ext import (
 from telegram_bot_calendar import LSTEP
 
 from db import Session
-from db.controller import register_user, save_event, list_events
+from db.controller import register_chat, save_event, list_events_for_chat, get_chat
 from bot import CustomCalendar
 
 DATE, EVENT = range(2)
@@ -44,21 +43,25 @@ class EventBot():
         self.application.add_handler(start_handler)
         self.application.add_handler(conv_handler)
         self.application.add_handler(all_events_handler)
+
+        job_queue = self.application.job_queue
+
+        job_minute = job_queue.run_repeating(self.callback_minute, interval=10, first=10)
     
     def run(self):
         self.application.run_polling()
 
 
     async def start(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
-        user = update.effective_user
+        chat_id = update.effective_chat.id
         with Session.begin() as session:
-            result = register_user(user=user, session=session)
+            result = register_chat(chat_id=chat_id, session=session)
             if result:
-                response_text = f"We are now ready to remember birthday dates for you, {user.username}!"
+                response_text = f"We are now ready to remember birthday dates for you!"
             else:
-                response_text = f"Yes, we remember you, {user.username}!"
+                response_text = f"Thank you for using this bot!.\nPlease use the commands listed in the menu."
             await context.bot.send_message(
-                chat_id=update.effective_chat.id,
+                chat_id=chat_id,
                 text=response_text,
             )
 
@@ -80,8 +83,9 @@ class EventBot():
         event = update.message.text
         # datetime.date is saved here
         event_date = context.user_data["date"]
+        chat_id = update.effective_chat.id
         with Session.begin() as session:
-            save_event(user_id=update.effective_user.id, date=event_date, event=event, session=session)
+            save_event(chat_id=chat_id, date=event_date, event=event, session=session)
 
         this_year = datetime.date(datetime.date.today().year, event_date.month, event_date.day)
         next_year = this_year.replace(year=this_year.year + 1)
@@ -120,9 +124,9 @@ class EventBot():
         return ConversationHandler.END
 
     async def all_events(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-        user_id = update.effective_user.id
+        chat_id = update.effective_chat.id
         with Session.begin() as session:
-            events = list_events(user_id=user_id, session=session)
+            events = list_events_for_chat(chat_id=chat_id, session=session)
             # TODO: custom reply for no events
             events_text = "\n\n".join([f"Event date: {event.date}.\nEvent description: {event.event}" for event in events])
             reply_text = (
@@ -130,3 +134,14 @@ class EventBot():
                 f"{events_text}"
             )
             await update.message.reply_text(reply_text)
+
+    
+    async def callback_minute(self, context: ContextTypes.DEFAULT_TYPE):
+        with Session.begin() as session:
+            chat = get_chat(session=session)
+            await context.bot.send_message(chat_id=chat.id, text='One message every minute')
+
+    # async def send_reminder(self, chat, msg):
+    #     await self.application.bot.sendMessage(chat_id=chat, text=msg)
+    
+    

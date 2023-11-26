@@ -16,31 +16,28 @@ class Base(DeclarativeBase):
 
 
 # Will make it personal for now
-class User(Base):
-    __tablename__ = "users"
+class Chat(Base):
+    __tablename__ = "chats"
 
-    # telegram user_id 
+    # telegram chat_id 
     id: Mapped[int] = mapped_column(primary_key=True)
-    username: Mapped[str] = mapped_column(String(30))
     events: Mapped[list["Event"]] = relationship(
-        back_populates="user", 
+        back_populates="chat", 
         cascade="all, delete-orphan"
     )
 
     def __repr__(self) -> str:
-        return self.username
+        return self.id
 
 
-# TODO: add the ability to mention a telegram user
 class Event(Base):
     __tablename__  = "events"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     event: Mapped[str] = mapped_column(String(30))
-    # TODO: replace with the date type
     date: Mapped[date]
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
-    user: Mapped["User"] = relationship(back_populates="events")
+    chat_id: Mapped[int] = mapped_column(ForeignKey("chats.id"))
+    chat: Mapped["Chat"] = relationship(back_populates="events")
 
     def __repr__(self) -> str:
         return super().__repr__()
