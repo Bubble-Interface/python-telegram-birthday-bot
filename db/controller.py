@@ -1,8 +1,13 @@
 import logging
-from datetime import date
+from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import (
+    select,
+    or_,
+    and_,
+    extract
+)
 from telegram import User as TelegramUser
 
 from db.models import Event, Chat
@@ -31,10 +36,25 @@ def list_events_for_chat(chat_id: int, session: Session):
     events = session.scalars(stmt)
     return events.all()
 
-def get_chat(session: Session):
-    stmt = select(Chat)
-    chat = session.scalar(stmt)
-    return chat
+def get_events_reminder_events(session: Session):
+    today = date.today()
+    tomorrow_date = today + timedelta(days=1)
+    in_a_week_date = today + timedelta(days=7)
+
+    stmt = select(Event).where(
+        or_(
+            and_(
+                extract('month', Event.date) == tomorrow_date.month,
+                extract('day', Event.date) == tomorrow_date.day,
+            ),
+            and_(
+                extract('month', Event.date) == in_a_week_date.month,
+                extract('day', Event.date) == in_a_week_date.day,
+            ),
+        )
+    )
+    events = session.scalars(stmt)
+    return events
 
 # TODO: create a separate class
 # TODO: async?

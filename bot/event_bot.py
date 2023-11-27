@@ -1,5 +1,6 @@
 import logging
 import datetime
+from pytz import timezone 
 
 from telegram import (
     Update,
@@ -18,7 +19,12 @@ from telegram.ext import (
 from telegram_bot_calendar import LSTEP
 
 from db import Session
-from db.controller import register_chat, save_event, list_events_for_chat, get_chat
+from db.controller import (
+    register_chat,
+    save_event,
+    list_events_for_chat,
+    get_events_reminder_events
+)
 from bot import CustomCalendar
 
 DATE, EVENT = range(2)
@@ -46,7 +52,11 @@ class EventBot():
 
         job_queue = self.application.job_queue
 
-        job_minute = job_queue.run_repeating(self.callback_minute, interval=10, first=10)
+        reminder_job = job_queue.run_daily(
+            callback=self.reminder, 
+            time=datetime.time(hour = 20, minute = 39, tzinfo=timezone('Europe/Moscow')),
+            days=(0, 1, 2, 3, 4, 5, 6),
+        )
     
     def run(self):
         self.application.run_polling()
@@ -136,12 +146,19 @@ class EventBot():
             await update.message.reply_text(reply_text)
 
     
-    async def callback_minute(self, context: ContextTypes.DEFAULT_TYPE):
+    async def reminder(self, context: ContextTypes.DEFAULT_TYPE):
+        todays_date = datetime.date.today()
+        tomorrows_date = todays_date + datetime.timedelta(days=1)
+        in_a_week_date = todays_date + datetime.timedelta(days=7)
         with Session.begin() as session:
-            chat = get_chat(session=session)
-            await context.bot.send_message(chat_id=chat.id, text='One message every minute')
+            events = get_events_reminder_events(session=session)
+            for event in events:
+                event_date_this_year = event.date.replace(year=todays_date.year)
+                if event_date_this_year == tomorrows_date:
+                    text = f"Tomorrow ({event.date}) this event will take place:\n{event.event}"
+                elif event_date_this_year == in_a_week_date:
+                    text = f"In a week ({event.date}) this event will take place:\n{event.event}"
+                await context.bot.send_message(chat_id=event.chat_id, text=text)
 
-    # async def send_reminder(self, chat, msg):
-    #     await self.application.bot.sendMessage(chat_id=chat, text=msg)
     
     
