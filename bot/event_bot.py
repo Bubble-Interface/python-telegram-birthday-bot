@@ -54,7 +54,8 @@ class EventBot():
 
         reminder_job = job_queue.run_daily(
             callback=self.reminder, 
-            time=datetime.time(hour = 20, minute = 39, tzinfo=timezone('Europe/Moscow')),
+            # TODO: use config file for these values
+            time=datetime.time(hour = 10, minute = 00, tzinfo=timezone('Europe/Moscow')),
             days=(0, 1, 2, 3, 4, 5, 6),
         )
     

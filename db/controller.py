@@ -32,9 +32,9 @@ def save_event(chat_id: int, date: date, event: str, session: Session):
     return True
 
 def list_events_for_chat(chat_id: int, session: Session):
-    stmt = select(Event).where(chat_id==chat_id)
+    stmt = select(Event).where(Event.chat_id==chat_id)
     events = session.scalars(stmt)
-    return events.all()
+    return events
 
 def get_events_reminder_events(session: Session):
     today = date.today()
